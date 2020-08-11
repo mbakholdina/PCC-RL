@@ -80,16 +80,19 @@ class ShimNetworkEnv(gym.Env):
         self.reward_ewma = 0.0
 
     def apply_action(self, action):
+        print('[ENV] apply_action')
+        print(f'action: {action}')
         delta = action * DELTA_SCALE
-        #print("Applying delta %f" % delta)
+        # print("Applying delta %f" % delta)
         if delta >= 0.0:
             self.set_rate(self.rate * (1.0 + delta))
         else:
             self.set_rate(self.rate / (1.0 - delta))
 
     def set_rate(self, new_rate):
+        print('[ENV] set_rate')
         self.rate = new_rate
-        #print("Attempt to set new rate to %f (min %f, max %f)" % (new_rate, MIN_RATE, MAX_RATE))
+        # print("Attempt to set new rate to %f (min %f, max %f)" % (new_rate, MIN_RATE, MAX_RATE))
         if self.rate > MAX_RATE:
             self.rate = MAX_RATE
         if self.rate < MIN_RATE:
@@ -100,6 +103,7 @@ class ShimNetworkEnv(gym.Env):
         return [seed]
 
     def step(self, action):
+        print('[ENV] step')
         if self.conn is None:
             print("Listening for connection from network sender")
             self.sock.listen()
@@ -107,8 +111,10 @@ class ShimNetworkEnv(gym.Env):
         self.apply_action(action[0])
         self.conn.send(str(self.rate).encode())
         data = self.conn.recv(1024).decode()
+        print(f'received data: {data}')
         data = data.split("\n")[-2]
         vals = data.split(";")
+        print(f'vals: {vals}')
         flow_id = int(vals[0])
         bytes_sent = int(vals[1])
         bytes_acked = int(vals[2])
@@ -139,6 +145,7 @@ class ShimNetworkEnv(gym.Env):
         return self.history.as_array(), rew, done, {}
 
     def reset(self):
+        print('[ENV] reset')
         self.history = sender_obs.SenderHistory(self.history_len, self.features, 0)
         self.reward_ewma *= 0.99
         self.reward_ewma += 0.01 * self.reward_sum
@@ -149,9 +156,11 @@ class ShimNetworkEnv(gym.Env):
         return self.history.as_array()
 
     def render(self, mode='human'):
+        print('[ENV] render')
         pass
 
     def close(self):
+        print('[ENV] close')
         if self.viewer:
             self.viewer.close()
             self.viewer = None
